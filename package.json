@@ -2,7 +2,10 @@
   "name": "library-contract-solidity-hardhat",
   "scripts": {
     "test": "npx hardhat test",
-    "deploy": "npx hardhat run --network localhost scripts/deploy.ts"
+    "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:rinkeby": "npx hardhat deploy --network rinkeby",
+    "interact:localhost": "npx hardhat run --network localhost scripts/interact.ts",
+    "interact:rinkeby": "npx hardhat run --network rinkeby scripts/interact.ts"
   },
   "author": "Jan Cibulka",
   "license": "MIT",

@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig, task, subtask } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
@@ -9,8 +9,8 @@ import "solidity-coverage";
 
 dotenv.config();
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
+// Tasks
+
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
 
@@ -19,10 +19,9 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-/*
-task("deploy-testnets", "Deploys contract on a provided network").setAction(async () => {
-  const deployElectionContract = require("./scripts/deploy");
-  await deployElectionContract();
+task("deploy", "Deploys contract on a provided network").setAction(async () => {
+  const deployContract = require("./scripts/deploy.ts");
+  await deployContract();
 });
 
 subtask("print", "Prints a message")
@@ -30,17 +29,15 @@ subtask("print", "Prints a message")
   .setAction(async (taskArgs) => {
     console.log(taskArgs.message);
   });
-  */
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
+// Config
 
 interface HardhatCustomConfig extends HardhatUserConfig {
   settings?: { optimizer: { enabled: boolean; runs: number } };
 }
 
 const config: HardhatCustomConfig = {
-  solidity: "0.8.4",
+  solidity: "0.8.7",
   settings: {
     optimizer: {
       enabled: true,

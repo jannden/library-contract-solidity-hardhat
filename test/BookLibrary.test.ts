@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 const books = [
@@ -12,7 +12,7 @@ const books = [
 // const jsNumber = (bigNumber: number) => Number(bigNumber.toString());
 
 interface AvailableBook {
-  id: number;
+  id: BigNumber;
   book: string;
 }
 

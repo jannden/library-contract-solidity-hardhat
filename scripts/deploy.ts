@@ -1,30 +1,34 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `npx hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
-import { ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 
-async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+async function deployContract() {
+  // Compilation is necessary only when calling the script from node command line
+  // await hre.run("compile");
 
-  // We get the contract to deploy
+  // BookLibrary
   const BookLibrary = await ethers.getContractFactory("BookLibrary");
   const bookLibrary = await BookLibrary.deploy();
-
   await bookLibrary.deployed();
 
+  // Printing info
+  // console.log and hre.run("print",...) can be used interchangeably
   console.log("Contract deployed to:", bookLibrary.address);
+  await hre.run("print", {
+    message: "Deployed successfully",
+  });
+
+  // Verifying contract on EtherScan.io
+  if (hre.hardhatArguments.network === "rinkeby") {
+    await bookLibrary.deployTransaction.wait(6);
+    await hre.run("verify:verify", {
+      address: bookLibrary.address,
+      constructorArguments: [],
+    });
+  }
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
+deployContract().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+module.exports = deployContract;
