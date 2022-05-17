@@ -1,9 +1,11 @@
 import * as dotenv from "dotenv";
 
-import { BigNumber, Contract, Wallet } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import hre, { ethers } from "hardhat";
 
 dotenv.config();
+
+const rinkebyContractAddress = "0x7971152A3F2FeF46C4c15EBB963861828a6b5EE1";
 
 interface AvailableBook {
   id: BigNumber;
@@ -24,43 +26,56 @@ const bobsContractInstance = await aliceContractInstance.connect(bobsWallet)
 
 async function interact() {
   // Setup wallet and provider
-  let wallet: Wallet;
+  /*
+  // This is the difficult way
+  let alicesWallet: Wallet;
+  let bobsWallet: Wallet;
   if (hre.hardhatArguments.network === "rinkeby") {
     // Wallet instance rinkeby
-    const provider = new hre.ethers.providers.InfuraProvider(
+    const provider = new ethers.providers.InfuraProvider(
       "rinkeby",
       process.env.INFURA
     );
-    wallet = new hre.ethers.Wallet(process.env.PRIVATE_KEY || "", provider);
+    alicesWallet = new ethers.Wallet(process.env.PRIVATE_KEY || "", provider);
+    bobsWallet = new ethers.Wallet(process.env.PRIVATE_KEY || "", provider);
   } else {
-    // Wallet instance localhost
-    const provider = new hre.ethers.providers.JsonRpcProvider(
+    //Wallet instance localhost
+    const provider = new ethers.providers.JsonRpcProvider(
       "http://localhost:8545"
     );
-    wallet = new hre.ethers.Wallet(
+    alicesWallet = new ethers.Wallet(
       "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
       provider
     );
+    bobsWallet = new ethers.Wallet(
+      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+      provider
+    );
   }
-  const balance = await wallet.getBalance();
-  console.log("Balance is", hre.ethers.utils.formatEther(balance));
+  */
+
+  // The wallets could be simply taken from ethers:
+  const [alicesWallet, bobsWallet] = await ethers.getSigners();
+  console.log(
+    "Alice's balance is",
+    ethers.utils.formatEther(await alicesWallet.getBalance())
+  );
+  console.log(
+    "Bob's balance is",
+    ethers.utils.formatEther(await bobsWallet.getBalance())
+  );
 
   // Contract
   let bookLibrary: Contract;
   if (hre.hardhatArguments.network === "rinkeby") {
-    const deployedContractAddress =
-      "0x8B2fFcb599a869c379c5C5b0974e57AE2B3a82e4";
-    const BookLibrary = await hre.ethers.getContractFactory("BookLibrary");
-    bookLibrary = await BookLibrary.attach(deployedContractAddress);
+    const BookLibrary = await ethers.getContractFactory("BookLibrary");
+    bookLibrary = await BookLibrary.attach(rinkebyContractAddress);
   } else {
     // Redeploy to clean state
-    const BookLibrary = await hre.ethers.getContractFactory("BookLibrary");
+    const BookLibrary = await ethers.getContractFactory("BookLibrary");
     bookLibrary = await BookLibrary.deploy();
   }
   console.log("Contract address is", bookLibrary.address);
-
-  // Accounts
-  const accounts = await ethers.getSigners();
 
   // Prepare variable for available books and desirable book
   let availableBooks: Array<AvailableBook>;
@@ -69,7 +84,7 @@ async function interact() {
   // Add books to the library
   console.log("Adding Books");
 
-  const addBook = await bookLibrary.addBook("Hey", 1);
+  const addBook = await bookLibrary.connect(alicesWallet).addBook("Hey", 1);
   await addBook.wait();
 
   // Update available books
@@ -84,7 +99,7 @@ async function interact() {
   // Person 1 borrows the desired book
   console.log("Person 1 borrows.");
   const borrowBook = await bookLibrary
-    .connect(accounts[1])
+    .connect(alicesWallet)
     .borrowBook(desiredBookIndex);
   await borrowBook.wait();
 
@@ -95,7 +110,7 @@ async function interact() {
   // Person 1 returns the desired book
   console.log("Person 1 returns.");
   const returnBook = await bookLibrary
-    .connect(accounts[1])
+    .connect(alicesWallet)
     .returnBook(desiredBookIndex);
   await returnBook.wait();
 
@@ -106,7 +121,7 @@ async function interact() {
   // Person 2 borrows the desired book
   console.log("Person 2 borrows.");
   const borrowBookAgain = await bookLibrary
-    .connect(accounts[2])
+    .connect(bobsWallet)
     .borrowBook(desiredBookIndex);
   await borrowBookAgain.wait();
 
