@@ -19,10 +19,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-task("deploy", "Deploys contract on a provided network").setAction(async () => {
-  const deployContract = require("./scripts/deploy.ts");
-  await deployContract();
-});
+task("deploy", "Deploys contract on a provided network")
+  .addOptionalParam("contract", "The contract to deploy", "BookLibrary")
+  .setAction(async ({ contract }) => {
+    const deployContract = require("./scripts/deploy.ts");
+    await deployContract(contract);
+  });
 
 subtask("print", "Prints a message")
   .addParam("message", "The message to print")
