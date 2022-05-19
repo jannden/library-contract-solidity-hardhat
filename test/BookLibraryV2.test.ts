@@ -13,31 +13,32 @@ const books = [
 
 interface AvailableBook {
   id: BigNumber;
-  book: string;
+  name: string;
 }
 
-describe("BookLibrary", function () {
+describe("BookLibraryV2", function () {
   let bookLibrary: Contract;
-  let availableBooks: Array<AvailableBook>;
   let accounts: Array<SignerWithAddress>;
 
   before(async function () {
     accounts = await ethers.getSigners();
-    const BookLibrary = await ethers.getContractFactory("BookLibrary");
+    const BookLibrary = await ethers.getContractFactory("BookLibraryV2");
     bookLibrary = await BookLibrary.deploy();
     await bookLibrary.deployed();
   });
 
   it("Should add a book", async function () {
-    books.forEach(async (item) => {
-      const addBook = await bookLibrary.addBook(item.title, item.copies);
-      await addBook.wait();
-    });
+    const addBook0 = await bookLibrary.addBook(books[0].title, books[0].copies);
+    await addBook0.wait();
+    const addBook1 = await bookLibrary.addBook(books[1].title, books[1].copies);
+    await addBook1.wait();
+    const addBook2 = await bookLibrary.addBook(books[2].title, books[2].copies);
+    await addBook2.wait();
 
-    availableBooks = await bookLibrary.getAvailableBooks();
+    const availableBooks = await bookLibrary.getAvailableBooks();
     expect(availableBooks.length).to.equal(books.length);
     availableBooks.forEach((item: AvailableBook, index: number) => {
-      expect(item.book).to.equal(books[index].title);
+      expect(item.name).to.equal(books[index].title);
     });
   });
 
@@ -48,9 +49,9 @@ describe("BookLibrary", function () {
       .borrowBook(borrowingIndex);
     await borrowBook.wait();
 
-    availableBooks = await bookLibrary.getAvailableBooks();
+    const availableBooks = await bookLibrary.getAvailableBooks();
     expect(availableBooks.length).to.equal(books.length - 1);
-    expect(availableBooks.map((item) => item.book)).to.eql(
+    expect(availableBooks.map((item: AvailableBook) => item.name)).to.eql(
       books
         .filter((_, index) => index !== borrowingIndex)
         .map((item) => item.title)
@@ -59,7 +60,7 @@ describe("BookLibrary", function () {
 
   it("Should not borrow unavailable book", async function () {
     const borrowingIndex = 0;
-    expect(
+    await expect(
       bookLibrary.connect(accounts[2]).borrowBook(borrowingIndex)
     ).to.be.revertedWith("No available copies.");
   });
@@ -69,16 +70,15 @@ describe("BookLibrary", function () {
     const addBook = await bookLibrary.addBook(books[addingIndex].title, 1);
     await addBook.wait();
 
-    availableBooks = await bookLibrary.getAvailableBooks();
-    expect(availableBooks.length).to.equal(books.length);
-    availableBooks.forEach((item: AvailableBook, index: number) => {
-      expect(item.book).to.equal(books[index].title);
-    });
+    const availableBooks = await bookLibrary.getAvailableBooks();
+    expect(availableBooks.map((item: AvailableBook) => item.name)).to.eql(
+      books.map((item) => item.title)
+    );
   });
 
   it("Should not borrow book twice", async function () {
     const borrowingIndex = 0;
-    expect(
+    await expect(
       bookLibrary.connect(accounts[1]).borrowBook(borrowingIndex)
     ).to.be.revertedWith("Please return the book first.");
   });
@@ -97,8 +97,8 @@ describe("BookLibrary", function () {
       .returnBook(borrowingIndex);
     await returnBook.wait();
 
-    availableBooks = await bookLibrary.getAvailableBooks();
-    expect(availableBooks.map((item) => item.book)).to.include(
+    const availableBooks = await bookLibrary.getAvailableBooks();
+    expect(availableBooks.map((item: AvailableBook) => item.name)).to.include(
       books[borrowingIndex].title
     );
   });
@@ -110,9 +110,13 @@ describe("BookLibrary", function () {
       .borrowBook(borrowingIndex);
     await borrowBook.wait();
 
-    const allBorrowers = await bookLibrary.getAllBorrowers(borrowingIndex);
-    expect(allBorrowers).to.eql(
-      accounts.map((item) => item.address).slice(1, 3)
-    );
+    const eventFilter = bookLibrary.filters.BookBorrowed(borrowingIndex);
+    const events = await bookLibrary.queryFilter(eventFilter);
+
+    expect(
+      events
+        .map((item) => item.args?.borrower)
+        .filter((value, index, self) => self.indexOf(value) === index)
+    ).to.eql([accounts[1].address, accounts[2].address]);
   });
 });
